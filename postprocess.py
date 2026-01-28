@@ -53,6 +53,7 @@ beta=8;
 g=9.81;
 Reb=10000;
 nu=1e-6;
+Ub=Reb*nu/H;
 rho=1000;
 R=4.5e-4;
 a0=0.003;
@@ -522,7 +523,6 @@ for timename in timenames:
      trix = trix.flatten()
      triux = triux.flatten()
      triuy = triuy.flatten()
-     Ub=Reb*nu/H
 
      print(f"#######################################################################################################################")
      for i in selection:
@@ -649,7 +649,7 @@ for timename in timenames:
      plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'],  'text.usetex': True})
      plt.rcParams['xtick.direction'] = 'in'
      plt.rcParams['ytick.direction'] = 'in'
-     csvname ='-x-y=0-z=0.csv'
+     csvname ='-xalpha-y=0-z=0.csv'
      csvname = sim + csvname
      pd.DataFrame(xinterp[int(ngridy_surf/2),1:], columns=['x']).to_csv(csvname, index=False)
      csvname ='-alpha-x-y=0-z=0.csv'
@@ -675,7 +675,7 @@ for timename in timenames:
      plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'], 'text.usetex': True})
      plt.rcParams['xtick.direction'] = 'in'
      plt.rcParams['ytick.direction'] = 'in'
-     csvname ='-x-y=0-z=0.csv'
+     csvname ='-xdalphadx-y=0-z=0.csv'
      csvname = sim + csvname
      pd.DataFrame(xvals, columns=['x']).to_csv(csvname, index=False)
      csvname = '-dalphadx-x-y=0-z=0.csv'
@@ -741,6 +741,34 @@ for timename in timenames:
      plt.savefig(savename, bbox_inches="tight")
      plt.close()
      print(f"Plotted \"{savename}\" successfully !")
+
+
+     #Surface restress spanwise profile at xp or xsdrop !
+     if flagssurf == 1 or flagasurf == 1:
+        fig = plt.figure(figsize=(6, 4), dpi=500)
+        plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'],  'text.usetex': True})
+        plt.rcParams['xtick.direction'] = 'in'
+        plt.rcParams['ytick.direction'] = 'in'
+        csvname ='-y-x=xp-z=0.csv'
+        csvname = sim + csvname
+        pd.DataFrame(yinterp[1:,0], columns=['y']).to_csv(csvname, index=False)
+        csvname ='-rxy-y-x=xp-z=0.csv'
+        csvname = sim + csvname
+        if sedfoam == 0:
+           index = np.argmin(np.abs(xinterp - xp/2))
+        else: 
+           index = np.argmin(np.abs(xinterp - xsdrop/2))
+        pd.DataFrame(rxy[1:,index], columns=['rxy']).to_csv(csvname, index=False)
+        plt.plot(yinterp[1:,index]/W, rxy[1:,index]/Ub**2, c='black')
+        plt.axhline(y=0, color='black', linestyle='--', linewidth=1)
+        plt.xlabel('$y/W$', fontsize=12)
+        plt.ylabel('$\\overline{R_{xy}}/U_0^2$', fontsize=12)
+        filename='-surfaceplane-spanwise-rxy-profile-at-x=xp.pdf'
+        savename = sim + filename
+        plt.savefig(savename, bbox_inches="tight")
+        plt.close()
+        print(f"Plotted \"{savename}\" successfully !")
+
 
    #Surface vorticity map !
    if flagvortsurf == 1:
@@ -1099,7 +1127,6 @@ for timename in timenames:
 
      ux_avg=np.mean(ux) 
      uy_avg=np.mean(uy)
-     Ub=Reb*nu/H
 
      print(f"#################################################")
      print(f'Ux(min) at the surface: %f ' % ux.min() , 'm/s')
@@ -1390,7 +1417,6 @@ for timename in timenames:
 
       ux_avg=np.nanmean(ux) 
       uz_avg=np.nanmean(uz)
-      Ub=Reb*nu/H
       Uc = np.nanmean(ux, axis=0)
 
       ut = (ux**2 + uz**2)**0.5
@@ -1533,7 +1559,7 @@ for timename in timenames:
          xcrossings = []
          zcrossings = []
 
-         for j in range(0, len(ux[0]), 4):  
+         for j in range(0, len(ux[0]), 1):  
             for i in range(1, len(ux[:, j])):
                if ux[i-1, j] > 0 and ux[i, j] < 0:
                   zcross = zinterp[i-1, j] + (ux[i-1, j] / (ux[i-1, j] - ux[i, j])) * (zinterp[i, j] - zinterp[i-1, j])
@@ -1555,10 +1581,11 @@ for timename in timenames:
          Hg = verticaldistances * np.sin(90/180*pi-beta/180*pi)
          horizontaldistances = verticaldistances * np.sin(beta/180*pi)
          xshifted = xcrossings - horizontaldistances
-         exclper = 0.25
-         numvalexcl = int(len(Hg) * exclper)
-         Hgmid = Hg[numvalexcl: -numvalexcl]
-         Hgm = np.mean(Hgmid)
+         # exclper = 0.25
+         # numvalexcl = int(len(Hg) * exclper)
+         # Hgmid = Hg[numvalexcl: -numvalexcl]
+         # Hgm = np.mean(Hgmid)
+         Hgm = np.mean(Hg)
        
          euclidiandistances = []
          xshiftedvalues = []
@@ -1568,7 +1595,7 @@ for timename in timenames:
          points = np.column_stack((xinterp.flatten(), zinterp.flatten()))
          usvalues = us.flatten()
          Rvalues = T_i.flatten()
-         for j in range(0, len(xshifted), 5):  
+         for j in range(0, len(xshifted), 1):  
            xslope = xshifted[j]
            zslope = zreference(xshifted[j])
            xsurf = xslope + abs(zslope) * np.tan(beta / 180 * pi)
@@ -1588,16 +1615,24 @@ for timename in timenames:
            Rgnet = griddata(points, Rvalues, (xnet, znet), method='linear')
            Rgnetmean = np.mean(Rgnet)
            Rg.append(Rgnetmean)
-         exclper = 0.25
-         numvalexcl = int(len(Ug) * exclper)
-         Ugm = np.mean(Ug[numvalexcl: -numvalexcl])
-         Hgreduced = np.array(Hgreduced, dtype=float)
-         Frh = Ug/np.sqrt(Hgreduced*g)
+         # exclper = 0.25
+         # numvalexcl = int(len(Ug) * exclper)
+         # Ugm = np.mean(Ug[numvalexcl: -numvalexcl])
+         # Hgreduced = np.array(Hgreduced, dtype=float)
+         # Frh = Ug/np.sqrt(Hgreduced*g)
+         # Frhm = Ugm/np.sqrt(Hgm*g)
+         # numvalexcl = int(len(Rg) * exclper)
+         # Rgm= np.mean(Rg[numvalexcl: -numvalexcl])
+         # Rg = np.array(Rg, dtype=float)
+         # Frdh = Ug/np.sqrt(Hgreduced*g*Rg)
+         # Frdhm=Frhm/Rgm**0.5
+         Ugm = np.mean(Ug)
+         Hg = np.array(Hg, dtype=float)
+         Frh = Ug/np.sqrt(Hg*g)
          Frhm = Ugm/np.sqrt(Hgm*g)
-         numvalexcl = int(len(Rg) * exclper)
-         Rgm= np.mean(Rg[numvalexcl: -numvalexcl])
+         Rgm= np.mean(Rg)
          Rg = np.array(Rg, dtype=float)
-         Frdh = Ug/np.sqrt(Hgreduced*g*Rg)
+         Frdh = Ug/np.sqrt(Hg*g*Rg)
          Frdhm=Frhm/Rgm**0.5
 
          #Single point estimation of Frdh at Hgmin location
@@ -1671,10 +1706,10 @@ for timename in timenames:
          plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'],  'text.usetex': True})
          plt.rcParams['xtick.direction'] = 'in'
          plt.rcParams['ytick.direction'] = 'in'
-         csvname ='-x-coordinate-Ug.csv'
+         csvname ='-x-coordinate-Rg.csv'
          csvname = sim + csvname
          pd.DataFrame(xshiftedvalues, columns=['x']).to_csv(csvname, index=False)
-         csvname ='-Rg-coordinate-Ug.csv'
+         csvname ='-Rg-coordinate-Rg.csv'
          csvname = sim + csvname
          pd.DataFrame(Rg, columns=['Rg']).to_csv(csvname, index=False)          
          plt.plot(np.array(xshiftedvalues)/W, Rg/R*100, '-', linewidth=2, color='black', label=f'{sim}')
@@ -1739,6 +1774,9 @@ for timename in timenames:
          print(f"Plunging point position based on hc(x) maximum criterion normalized by the channel width x_d/W={xd/W} m")
          print(f"Minimum hc(x) position normalized by the channel width x_ud/W={xumin/W} m")
          print(f"Undercurrent start location x_uc={xuc} m") 
+         print(f"######################################################################################################")
+
+         print(f"######################################################################################################")
          print(f"Mean height of the gravity current H_g={Hgm} m") 
          print(f"Mean velocity of the gravity current U_g={Ugm} m/s") 
          print(f"Mean hydraulic Froude number of the gravity current Fr_h={Frhm}")
@@ -2423,7 +2461,6 @@ for timename in timenames:
      func=np.polyfit(x_TKEmax,y_TKEmax,degree)
      pol = np.poly1d(func)
      yvals = pol(x_TKEmax) 
-     Ub=Reb*nu/H
 
      #Surface tke contourmap !
      fig = plt.figure(figsize=(6, 4), dpi=500)
@@ -2672,7 +2709,6 @@ for timename in timenames:
                  uz[i,j]=np.nan
      ux_avg=np.nanmean(ux) 
      uz_avg=np.nanmean(uz)
-     Ub=Reb*nu/H
 
      print(f"############################################################################################")
      print(f"Undercurrent point position based on 99%R criterion !")
@@ -2886,7 +2922,6 @@ for timename in timenames:
         ax_top=ax.secondary_xaxis('top')
         ax_top.set_xticks([xsdrop/W])
         ax_top.set_xticklabels(['$x_s$'],fontsize=24,color='black')
-        #plt.suptitle(f'xp = {xp:.2f} m', fontsize=12, verticalalignment='center', horizontalalignment='center')
      if flagusurf == 1 and sedfoam==1:
         slope = (ys[1] - ys[0]) / (xs[1] - xs[0])
         y_at_xw = slope * (xcrosssign*W - xs[0]) + ys[0]
@@ -2953,6 +2988,30 @@ for timename in timenames:
      print(f"##################################################################")
      print(f'Average sediment concentration at the channel outlet: {amouth:.6f}')
      print(f"##################################################################")
+
+     if flagasurf==1:
+        #Centerplane sediment concentration vertical profile at x=xsdrop !
+        fig = plt.figure(figsize=(6, 4), dpi=500)
+        plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'], 'text.usetex': True})
+        plt.rcParams['xtick.direction'] = 'in'
+        plt.rcParams['ytick.direction'] = 'in'
+        ix = np.argmin(np.abs(xinterp - xsdrop))
+        csvname = sim + '-z-x=xsdrop-y=0.csv'
+        pd.DataFrame(zinterp[:-1,ix]/(+H+xsdrop*tan(beta/180*pi)), columns=['z']).to_csv(csvname, index=False)
+        csvname = sim + '-alpha-z-x=xsdrop-y=0.csv'
+        pd.DataFrame(a_i[:-1,ix], columns=['alpha']).to_csv(csvname, index=False)
+        plt.plot(a_i[:-1,ix]/a0, zinterp[:-1,ix]/(+H+xsdrop*tan(beta/180*pi)), c='black')
+        plt.axhline(y=0, color='black', linestyle='--', linewidth=1)
+        plt.ylim(-1,0)
+        plt.ylabel('$z/z(x_{sdrop})$', fontsize=12)
+        if inst==0:
+           plt.xlabel('$\\overline{a}/a_0$', fontsize=12)
+        else:
+           plt.xlabel('${a}/a_0$', fontsize=12)
+        savename = sim + '-centerplane-vertical-alpha-profile-at-x=xsdrop.pdf'
+        plt.savefig(savename, bbox_inches="tight")
+        plt.close()
+        print(f"Plotted \"{savename}\" successfully !")
 
    #Centerplane restress map !
    if flagrecenter == 1 and inst != 1:
@@ -3339,7 +3398,6 @@ for timename in timenames:
 
       ux_avg=np.nanmean(ux) 
       uz_avg=np.nanmean(uz)
-      Ub=Reb*nu/H
 
       tauxz = np.zeros_like(ux)
       for i in range(1, ngridz_center - 1):  
@@ -4104,6 +4162,41 @@ for timename in timenames:
            alpha_expanded=alpha
          a_i = griddata((y[Iplane], z[Iplane]), alpha_expanded[Iplane], (yinterp, zinterp), method='linear')
 
+         original_shape = U.shape
+         new_size = max(Iplane[0]) + 1  
+         if original_shape[1] <= new_size:
+            U_expanded = np.zeros((original_shape[0], new_size))
+            U_expanded[:, :original_shape[1]] = U
+         else:
+            U_expanded = U
+         Ux_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[0, Iplane]), (yinterp, zinterp), method='linear')
+         Uy_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[1, Iplane]), (yinterp, zinterp), method='linear')
+         Uz_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[2, Iplane]), (yinterp, zinterp), method='linear')
+         ux=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Ux_i[i,j]
+               if str(c)=='[nan]':
+                  ux[i,j]=0
+               else:
+                  ux[i,j]=c[0]
+         uy=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Uy_i[i,j]
+               if str(c)=='[nan]':
+                  uy[i,j]=0
+               else:
+                  uy[i,j]=c[0]
+         uz=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Uz_i[i,j]
+               if str(c)=='[nan]':
+                  uz[i,j]=0
+               else:
+                  uz[i,j]=c[0]
+         
          fig = plt.figure(figsize=(16, 4), dpi=500)
          plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'],  'text.usetex': True})
          plt.rcParams['xtick.direction'] = 'in'
@@ -4113,6 +4206,8 @@ for timename in timenames:
          plt.axvline(x=-1/2, color='black', linestyle='--', linewidth=1) 
          plt.axvline(x=+1/2, color='black', linestyle='--', linewidth=1) 
          cbar = plt.colorbar()
+         quiver_spacing = 8
+         q = plt.quiver(yinterp[0, ::quiver_spacing]/W, zinterp[:, 0][::quiver_spacing]/H, uy[::quiver_spacing, ::quiver_spacing]/Ub, uz[::quiver_spacing, ::quiver_spacing]/Ub, width=0.002, scale=10, headwidth=2, color='white')
          if inst==0:
             cbar.set_label('$\\overline{\\alpha}/a_0$', fontsize=12)
          else:
@@ -4125,7 +4220,7 @@ for timename in timenames:
          plt.ylabel('$z/H_0$', fontsize=12)
          Dxs=-0.5*xsdrop*tan(beta/180*pi)-H;
          plt.ylim(Dxs/H,0)
-         filename='-transversalplane-x=0.5xp-sediment-concentration-field.pdf'
+         filename='-transversalplane-x=0.5xsdrop-sediment-concentration-field.pdf'
          savename = sim + filename
          plt.savefig(savename, bbox_inches="tight")
          plt.close()
@@ -4146,6 +4241,42 @@ for timename in timenames:
            alpha_expanded=alpha
          a_i = griddata((y[Iplane], z[Iplane]), alpha_expanded[Iplane], (yinterp, zinterp), method='linear')
 
+         original_shape = U.shape
+         new_size = max(Iplane[0]) + 1  
+         if original_shape[1] <= new_size:
+            U_expanded = np.zeros((original_shape[0], new_size))
+            U_expanded[:, :original_shape[1]] = U
+         else:
+            U_expanded = U
+         Ux_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[0, Iplane]), (yinterp, zinterp), method='linear')
+         Uy_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[1, Iplane]), (yinterp, zinterp), method='linear')
+         Uz_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[2, Iplane]), (yinterp, zinterp), method='linear')
+         ux=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Ux_i[i,j]
+               if str(c)=='[nan]':
+                  ux[i,j]=0
+               else:
+                  ux[i,j]=c[0]
+         uy=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Uy_i[i,j]
+               if str(c)=='[nan]':
+                  uy[i,j]=0
+               else:
+                  uy[i,j]=c[0]
+         uz=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Uz_i[i,j]
+               if str(c)=='[nan]':
+                  uz[i,j]=0
+               else:
+                  uz[i,j]=c[0]
+   
+
          fig = plt.figure(figsize=(16, 4), dpi=500)
          plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'],  'text.usetex': True})
          plt.rcParams['xtick.direction'] = 'in'
@@ -4155,6 +4286,8 @@ for timename in timenames:
          plt.axvline(x=-1/2, color='black', linestyle='--', linewidth=1) 
          plt.axvline(x=+1/2, color='black', linestyle='--', linewidth=1) 
          cbar = plt.colorbar()
+         quiver_spacing = 10
+         q = plt.quiver(yinterp[0, ::quiver_spacing]/W, zinterp[:, 0][::quiver_spacing]/H, uy[::quiver_spacing, ::quiver_spacing]/Ub, uz[::quiver_spacing, ::quiver_spacing]/Ub, width=0.002, scale=10, headwidth=2, color='white')
          if inst==0:
             cbar.set_label('$\\overline{\\alpha}/a_0$', fontsize=12)
          else:
@@ -4167,7 +4300,7 @@ for timename in timenames:
          plt.ylabel('$z/H_0$', fontsize=12)
          Dxs=-xsdrop*tan(beta/180*pi)-H;
          plt.ylim(Dxs/H,0)
-         filename='-transversalplane-x=xp-sediment-concentration-field.pdf'
+         filename='-transversalplane-x=xsdrop-sediment-concentration-field.pdf'
          savename = sim + filename
          plt.savefig(savename, bbox_inches="tight")
          plt.close()
@@ -4188,6 +4321,42 @@ for timename in timenames:
            alpha_expanded=alpha
          a_i = griddata((y[Iplane], z[Iplane]), alpha_expanded[Iplane], (yinterp, zinterp), method='linear')
 
+         original_shape = U.shape
+         new_size = max(Iplane[0]) + 1  
+         if original_shape[1] <= new_size:
+            U_expanded = np.zeros((original_shape[0], new_size))
+            U_expanded[:, :original_shape[1]] = U
+         else:
+            U_expanded = U
+         Ux_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[0, Iplane]), (yinterp, zinterp), method='linear')
+         Uy_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[1, Iplane]), (yinterp, zinterp), method='linear')
+         Uz_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[2, Iplane]), (yinterp, zinterp), method='linear')
+         ux=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Ux_i[i,j]
+               if str(c)=='[nan]':
+                  ux[i,j]=0
+               else:
+                  ux[i,j]=c[0]
+         uy=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Uy_i[i,j]
+               if str(c)=='[nan]':
+                  uy[i,j]=0
+               else:
+                  uy[i,j]=c[0]
+         uz=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Uz_i[i,j]
+               if str(c)=='[nan]':
+                  uz[i,j]=0
+               else:
+                  uz[i,j]=c[0]
+         
+
          fig = plt.figure(figsize=(16, 4), dpi=500)
          plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'],  'text.usetex': True})
          plt.rcParams['xtick.direction'] = 'in'
@@ -4197,6 +4366,8 @@ for timename in timenames:
          plt.axvline(x=-1/2, color='black', linestyle='--', linewidth=1) 
          plt.axvline(x=+1/2, color='black', linestyle='--', linewidth=1) 
          cbar = plt.colorbar()
+         quiver_spacing = 10
+         q = plt.quiver(yinterp[0, ::quiver_spacing]/W, zinterp[:, 0][::quiver_spacing]/H, uy[::quiver_spacing, ::quiver_spacing]/Ub, uz[::quiver_spacing, ::quiver_spacing]/Ub, width=0.002, scale=10, headwidth=2, color='white')
          if inst==0:
             cbar.set_label('$\\overline{\\alpha}/a_0$', fontsize=12)
          else:
@@ -4209,7 +4380,7 @@ for timename in timenames:
          plt.ylabel('$z/H_0$', fontsize=12)
          Dxs=-2*xsdrop*tan(beta/180*pi)-H;
          plt.ylim(Dxs/H,0)
-         filename='-transversalplane-x=2xp-sediment-concentration-field.pdf'
+         filename='-transversalplane-x=2xsdrop-sediment-concentration-field.pdf'
          savename = sim + filename
          plt.savefig(savename, bbox_inches="tight")
          plt.close()
@@ -4230,6 +4401,42 @@ for timename in timenames:
            alpha_expanded=alpha
          a_i = griddata((y[Iplane], z[Iplane]), alpha_expanded[Iplane], (yinterp, zinterp), method='linear')
 
+         original_shape = U.shape
+         new_size = max(Iplane[0]) + 1  
+         if original_shape[1] <= new_size:
+            U_expanded = np.zeros((original_shape[0], new_size))
+            U_expanded[:, :original_shape[1]] = U
+         else:
+            U_expanded = U
+         Ux_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[0, Iplane]), (yinterp, zinterp), method='linear')
+         Uy_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[1, Iplane]), (yinterp, zinterp), method='linear')
+         Uz_i = griddata((y[Iplane], z[Iplane]), np.transpose(U_expanded[2, Iplane]), (yinterp, zinterp), method='linear')
+         ux=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Ux_i[i,j]
+               if str(c)=='[nan]':
+                  ux[i,j]=0
+               else:
+                  ux[i,j]=c[0]
+         uy=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Uy_i[i,j]
+               if str(c)=='[nan]':
+                  uy[i,j]=0
+               else:
+                  uy[i,j]=c[0]
+         uz=np.zeros((ngridz_trans,ngridy_trans))
+         for i in range (0,ngridz_trans):
+           for j in range (0,ngridy_trans):
+               c=Uz_i[i,j]
+               if str(c)=='[nan]':
+                  uz[i,j]=0
+               else:
+                  uz[i,j]=c[0]
+         
+
          fig = plt.figure(figsize=(16, 4), dpi=500)
          plt.rcParams.update({'font.size': 11, 'font.family': 'serif','font.serif': ['Computer Modern Roman'],  'text.usetex': True})
          plt.rcParams['xtick.direction'] = 'in'
@@ -4239,6 +4446,8 @@ for timename in timenames:
          plt.axvline(x=-1/2, color='black', linestyle='--', linewidth=1) 
          plt.axvline(x=+1/2, color='black', linestyle='--', linewidth=1) 
          cbar = plt.colorbar()
+         quiver_spacing = 10
+         q = plt.quiver(yinterp[0, ::quiver_spacing]/W, zinterp[:, 0][::quiver_spacing]/H, uy[::quiver_spacing, ::quiver_spacing]/Ub, uz[::quiver_spacing, ::quiver_spacing]/Ub, width=0.002, scale=10, headwidth=2, color='white')
          if inst==0:
             cbar.set_label('$\\overline{\\alpha}/a_0$', fontsize=12)
          else:
@@ -4251,7 +4460,7 @@ for timename in timenames:
          plt.ylabel('$z/H_0$', fontsize=12)
          Dxs=-3*xsdrop*tan(beta/180*pi)-H;
          plt.ylim(Dxs/H,0)
-         filename='-transversalplane-x=3xp-sediment-concentration-field.pdf'
+         filename='-transversalplane-x=3xsdrop-sediment-concentration-field.pdf'
          savename = sim + filename
          plt.savefig(savename, bbox_inches="tight")
          plt.close()
@@ -4302,7 +4511,6 @@ for timename in timenames:
             else:
                uz[i,j]=c[0]
       
-      Ub=Reb*nu/H
 
       #Transversalplane streamwise velocity contourmap at x=0 !
       fig = plt.figure(figsize=(16, 4), dpi=500)
@@ -5617,8 +5825,6 @@ for timename in timenames:
          mask = (np.abs(umxy) > 1e-2) & (np.abs(rxy) > 1e-5)
          edvi = np.full_like(umxy, np.nan)
          edvi[mask] = 1 / (np.abs(umxy[mask]) / np.abs(rxy[mask]))
-         #vmax, vmin = np.nanmax(edvi), np.nanmin(edvi)
-         #plt.contourf(yinterp/W, zinterp/H, edvi, cmap=vcolormap, levels=100, vmin=vmin, vmax=vmax)
          plt.contourf(yinterp/W, zinterp/H, edvi, cmap=ecolormap, levels=np.linspace(0, 0.01, 100))
          cbar = plt.colorbar()
          plt.axvline(x=-1/2, color='black', linestyle='--', linewidth=1) 
@@ -5801,7 +6007,6 @@ for timename in timenames:
 
       ux_avg=np.mean(ux) 
       uy_avg=np.mean(uy)
-      Ub=Reb*nu/H
 
       print(f"#################################################")
       print(f'Ux(min) at the inclined bed: %f ' % ux.min() , 'm/s')
